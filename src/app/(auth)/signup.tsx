@@ -1,9 +1,45 @@
 import { useRouter } from "expo-router";
-import { Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useEffect, useState } from "react";
+import {
+ ActivityIndicator,
+ Alert,
+ Text,
+ TextInput,
+ TouchableOpacity,
+ View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useAuth } from "@/context/AuthContext";
 
 export default function SignupScreen() {
  const router = useRouter();
+ const [email, setEmail] = useState("");
+ const [password, setPassword] = useState("");
+ const [isLoading, setIsLoading] = useState(false);
+ const { signUp } = useAuth();
+
+ const handleSignUp = async () => {
+  if (!email || !password) {
+   Alert.alert("Error", "Please fill in all fields");
+   return;
+  }
+  if (password.length < 6) {
+   Alert.alert("Error", "Password must be at least 6 characters long");
+   return;
+  }
+  setIsLoading(true);
+  try {
+   await signUp(email, password);
+  } catch (error) {
+   Alert.alert("Error", "Failed to create account");
+  } finally {
+   setIsLoading(false);
+  }
+ };
+
+ useEffect(() => {
+  router.push("/(auth)/onboarding");
+ }, []);
 
  const handleSignIn = () => {
   router.push("/(auth)/login");
@@ -12,10 +48,12 @@ export default function SignupScreen() {
  return (
   <SafeAreaView edges={["top", "bottom"]} className="flex-1">
    <View className="flex-1 justify-center p-6">
-    <Text className="text-3xl font-bold mb-2">Create an account</Text>
+    <Text className="text-3xl font-bold mb-2">Create Account</Text>
     <Text className="text-xl mb-6 text-gray-500">Sign up to get started</Text>
     <View className="w-full">
      <TextInput
+      value={email}
+      onChangeText={setEmail}
       placeholder="Email"
       placeholderTextColor="gray"
       keyboardType="email-address"
@@ -24,6 +62,8 @@ export default function SignupScreen() {
       className="border border-gray-300 rounded-md p-4 mb-4"
      />
      <TextInput
+      value={password}
+      onChangeText={setPassword}
       placeholder="Password"
       placeholderTextColor="gray"
       autoComplete="password"
@@ -31,8 +71,15 @@ export default function SignupScreen() {
       autoCapitalize="none"
       className="border border-gray-300 rounded-md p-4 mb-4"
      />
-     <TouchableOpacity className="bg-black rounded-md p-4 mb-4 items-center justify-center">
-      <Text className="text-white font-bold text-md">Sign up</Text>
+     <TouchableOpacity
+      onPress={handleSignUp}
+      className="bg-black rounded-md p-4 mb-4 items-center justify-center"
+     >
+      {isLoading ? (
+       <ActivityIndicator size={24} color="white" />
+      ) : (
+       <Text className="text-white font-bold text-md">Sign up</Text>
+      )}
      </TouchableOpacity>
      <TouchableOpacity
       onPress={handleSignIn}
