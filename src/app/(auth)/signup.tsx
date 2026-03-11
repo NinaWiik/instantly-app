@@ -30,16 +30,18 @@ export default function SignupScreen() {
   setIsLoading(true);
   try {
    await signUp(email, password);
+   router.push("/(auth)/onboarding");
   } catch (error) {
+   console.error("Error signing up:", error);
    Alert.alert("Error", "Failed to create account");
   } finally {
    setIsLoading(false);
   }
  };
 
- useEffect(() => {
+ /*  useEffect(() => {
   router.push("/(auth)/onboarding");
- }, []);
+ }, []); */
 
  const handleSignIn = () => {
   router.push("/(auth)/login");

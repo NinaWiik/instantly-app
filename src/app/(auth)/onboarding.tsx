@@ -10,12 +10,17 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
+import { supabase } from "@/lib/superbase/client";
+import { uploadProfileImage } from "@/lib/superbase/storage";
+import { useAuth } from "@/context/AuthContext";
+import { router } from "expo-router";
 
 export default function OnboardingScreen() {
  const [name, setName] = useState("");
  const [userName, setUserName] = useState("");
  const [isLoading, setIsLoading] = useState(false);
  const [profileImage, setProfileImage] = useState<string | null>(null);
+ const { user, updateUser } = useAuth();
 
  const pickImage = async () => {
   const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -68,7 +73,65 @@ export default function OnboardingScreen() {
   );
  };
 
- const handleComplete = () => {};
+ const handleComplete = async () => {
+  if (!name || !userName) {
+   Alert.alert("Error", "Please fill in all fields");
+   return;
+  }
+  if (userName.length < 3) {
+   Alert.alert("Error", "Username must be at least 3 characters long");
+   return;
+  }
+  setIsLoading(true);
+  try {
+   if (!user) {
+    throw new Error("User not authenticated");
+   }
+   // Check if username is already taken
+   const { data: existingUser } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("username", userName)
+    .neq("id", user.id)
+    .single();
+
+   if (existingUser) {
+    Alert.alert("Error", "Username is already taken");
+    setIsLoading(false);
+    return;
+   }
+
+   // Upload profile image
+   let profileImageUrl: string | undefined;
+   if (profileImage) {
+    try {
+     profileImageUrl = await uploadProfileImage(
+      user.id as string,
+      profileImage,
+     );
+    } catch (error) {
+     console.error("Error uploading profile image:", error);
+     Alert.alert("Error", "Failed to upload profile image");
+     setIsLoading(false);
+     return;
+    }
+   }
+   // Update user profile
+   await updateUser({
+    name,
+    username: userName,
+    profileImage: profileImageUrl,
+    onBoardingCompleted: true,
+   });
+   Alert.alert("Success", "Onboarding completed successfully");
+   router.replace("/(tabs)");
+  } catch (error) {
+   Alert.alert("Error", "Failed to complete onboarding");
+   console.error("Error completing onboarding:", error);
+  } finally {
+   setIsLoading(false);
+  }
+ };
 
  return (
   <SafeAreaView edges={["top", "bottom"]} className="flex-1">
