@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/superbase/client";
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 
 export interface User {
  id: string;
@@ -21,6 +21,31 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
  const [user, setUser] = useState<User | null>(null);
+ const [isLoading, setIsLoading] = useState(true);
+
+ useEffect(() => {
+  checkAuth();
+ }, []);
+
+ const checkAuth = async () => {
+  try {
+   setIsLoading(true);
+   const {
+    data: { session },
+   } = await supabase.auth.getSession();
+   if (session) {
+    const profile = await fetchUserProfile(session.user.id);
+    setUser(profile);
+   } else {
+    setUser(null);
+   }
+  } catch (error) {
+   console.error("Error checking auth:", error);
+   setUser(null);
+  } finally {
+   setIsLoading(false);
+  }
+ };
 
  const fetchUserProfile = async (userId: string): Promise<User | null> => {
   try {
